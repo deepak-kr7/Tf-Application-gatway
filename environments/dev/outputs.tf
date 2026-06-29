@@ -1,0 +1,39 @@
+output "resource_group_name" {
+  value       = module.resource_group["main"].resource_group_name
+  description = "Name of the resource group"
+}
+
+output "vnet_name" {
+  value       = module.vnet.vnet_name
+  description = "Name of the Virtual Network"
+}
+
+output "netflix_private_ips" {
+  value       = local.netflix_backend_ips
+  description = "Private IPs of the Netflix application VMs"
+}
+
+output "starbucks_private_ips" {
+  value       = local.starbucks_backend_ips
+  description = "Private IPs of the Starbucks application VMs"
+}
+
+output "bastion_dns_name" {
+  value       = module.bastion.bastion_dns_name
+  description = "FQDN of the Bastion Host"
+}
+
+output "application_gateway_public_ip" {
+  value       = module.gateway.public_ip
+  description = "Public IP address of the Application Gateway"
+}
+
+output "netflix_url" {
+  value       = "http://${module.gateway.public_ip}:8080"
+  description = "URL to access Netflix app through Application Gateway"
+}
+
+output "starbucks_url" {
+  value       = "http://${module.gateway.public_ip}:8081"
+  description = "URL to access Starbucks app through Application Gateway"
+}
