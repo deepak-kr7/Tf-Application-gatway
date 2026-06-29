@@ -35,70 +35,15 @@ Instead of hardcoding multiple module calls, the parent module uses `for_each` t
 
 ---
 
-## ⚙️ Configuration in `terraform.tfvars`
+## ⚙️ Configuration (कॉन्फ़िगरेशन विवरण)
 
-All configurations, including resource groups, subnets, NSGs, VMs, and custom domain hostnames are defined inside [terraform.tfvars](file:///Users/deepak/Documents/Terraform/Application%20gatway/environments/dev/terraform.tfvars):
+All infrastructure parameters are dynamically driven and configured inside [terraform.tfvars](file:///Users/deepak/Documents/Terraform/Application%20gatway/environments/dev/terraform.tfvars). The configuration consists of the following key components:
 
-```hcl
-# Resource Groups map
-resource_groups = {
-  main = {
-    name     = "rg-dev-nfra"
-    location = "East US"
-  }
-}
-
-# Subnets nested map
-subnets = {
-  netflix   = { name = "sb-netflix", address_prefixes = ["10.0.1.0/24"] }
-  starbucks = { name = "sb-starbucks", address_prefixes = ["10.0.2.0/24"] }
-  bastion   = { name = "AzureBastionSubnet", address_prefixes = ["10.0.3.0/26"] }
-  appgw     = { name = "sb-appgw", address_prefixes = ["10.0.4.0/24"] }
-}
-
-# Network Security Groups (NSG) and Security Rules
-nsgs = {
-  netflix = {
-    nsg_name         = "nsg-netflix"
-    subnet_key       = "netflix"
-    associate_subnet = true
-    security_rules = [
-      {
-        name                       = "Allow-HTTP-From-AppGW"
-        priority                   = 100
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        source_port_range          = "*"
-        destination_port_range     = "80"
-        source_address_prefix      = "10.0.4.0/24" # App Gateway Subnet CIDR
-        destination_address_prefix = "*"
-      },
-      {
-        name                       = "Allow-SSH-From-Bastion"
-        ...
-      }
-    ]
-  }
-  starbucks = {
-    nsg_name         = "nsg-starbucks"
-    subnet_key       = "starbucks"
-    ...
-  }
-}
-
-# VMs nested map
-virtual_machines = {
-  netflix_1   = { name = "netflix-vm-1", subnet = "netflix", app_name = "Netflix App" }
-  netflix_2   = { name = "netflix-vm-2", subnet = "netflix", app_name = "Netflix App" }
-  starbucks_1 = { name = "starbucks-vm-1", subnet = "starbucks", app_name = "Starbucks App" }
-  starbucks_2 = { name = "starbucks-vm-2", subnet = "starbucks", app_name = "Starbucks App" }
-}
-
-# Custom Hostnames for Application Gateway Host-Based Routing
-netflix_host_name   = "netflix.b18g2.online"
-starbucks_host_name = "starbucks.b18g2.online"
-```
+1. **Resource Groups**: Configured via the `resource_groups` map, defining the name and location (e.g., East US) for resource deployment.
+2. **Subnets**: Defined using the `subnets` map, specifying names and address prefixes for different tiers (Netflix, Starbucks, Bastion, and Application Gateway).
+3. **Network Security Groups (NSGs)**: Configured using the `nsgs` map, defining custom NSGs, their subnet associations, and security rules (e.g., allowing HTTP from the Application Gateway, SSH from Bastion, and HTTPS).
+4. **Virtual Machines**: Configured via the `virtual_machines` map, specifying the VM name, target subnet, and application name (e.g., Netflix App, Starbucks App).
+5. **Custom Hostnames**: Declared using `netflix_host_name` and `starbucks_host_name` variables to enable host-based routing on the Application Gateway.
 
 ---
 
