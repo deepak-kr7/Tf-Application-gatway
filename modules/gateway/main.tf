@@ -65,11 +65,23 @@ resource "azurerm_application_gateway" "appgw" {
     }
   }
 
-  # Dynamic listeners (Port 443 - HTTPS)
+  # Dynamic HTTP listeners (Port 80)
   dynamic "http_listener" {
     for_each = var.apps
     content {
-      name                           = "${var.appgw_name}-${http_listener.key}-lstn"
+      name                           = "${var.appgw_name}-${http_listener.key}-http-lstn"
+      frontend_ip_configuration_name = "${var.appgw_name}-feip"
+      frontend_port_name             = "${var.appgw_name}-port-80"
+      protocol                       = "Http"
+      host_name                      = http_listener.value.host_name
+    }
+  }
+
+  # Dynamic HTTPS listeners (Port 443 - HTTPS)
+  dynamic "http_listener" {
+    for_each = var.apps
+    content {
+      name                           = "${var.appgw_name}-${http_listener.key}-https-lstn"
       frontend_ip_configuration_name = "${var.appgw_name}-feip"
       frontend_port_name             = "${var.appgw_name}-port-443"
       protocol                       = "Https"
@@ -78,16 +90,29 @@ resource "azurerm_application_gateway" "appgw" {
     }
   }
 
-  # Dynamic request routing rules
+  # Dynamic HTTP request routing rules (Port 80)
   dynamic "request_routing_rule" {
     for_each = var.apps
     content {
-      name                       = "${var.appgw_name}-${request_routing_rule.key}-rtr"
+      name                       = "${var.appgw_name}-${request_routing_rule.key}-http-rtr"
       rule_type                  = "Basic"
-      http_listener_name         = "${var.appgw_name}-${request_routing_rule.key}-lstn"
+      http_listener_name         = "${var.appgw_name}-${request_routing_rule.key}-http-lstn"
       backend_address_pool_name  = "${var.appgw_name}-${request_routing_rule.key}-beap"
       backend_http_settings_name = "${var.appgw_name}-${request_routing_rule.key}-be-htst"
       priority                   = request_routing_rule.value.priority
+    }
+  }
+
+  # Dynamic HTTPS request routing rules (Port 443)
+  dynamic "request_routing_rule" {
+    for_each = var.apps
+    content {
+      name                       = "${var.appgw_name}-${request_routing_rule.key}-https-rtr"
+      rule_type                  = "Basic"
+      http_listener_name         = "${var.appgw_name}-${request_routing_rule.key}-https-lstn"
+      backend_address_pool_name  = "${var.appgw_name}-${request_routing_rule.key}-beap"
+      backend_http_settings_name = "${var.appgw_name}-${request_routing_rule.key}-be-htst"
+      priority                   = request_routing_rule.value.priority + 100
     }
   }
 
