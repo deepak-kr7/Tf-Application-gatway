@@ -39,3 +39,16 @@ variable "tags" {
   default     = {}
   description = "Tags to apply to resources"
 }
+
+variable "ssl_certificate_pfx_base64" {
+  type        = string
+  description = "Base64 encoded content of the .pfx SSL certificate"
+  sensitive   = true
+}
+
+variable "ssl_certificate_password" {
+  type        = string
+  description = "Password for the .pfx SSL certificate"
+  sensitive   = true
+}
+

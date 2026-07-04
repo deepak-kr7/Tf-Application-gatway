@@ -29,11 +29,11 @@ output "application_gateway_public_ip" {
 }
 
 output "netflix_url" {
-  value       = "http://${module.gateway.public_ip}:8080"
+  value       = "https://${var.gateway_apps["netflix"].host_name}"
   description = "URL to access Netflix app through Application Gateway"
 }
 
 output "starbucks_url" {
-  value       = "http://${module.gateway.public_ip}:8081"
+  value       = "https://${var.gateway_apps["starbucks"].host_name}"
   description = "URL to access Starbucks app through Application Gateway"
 }

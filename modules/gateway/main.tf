@@ -28,9 +28,20 @@ resource "azurerm_application_gateway" "appgw" {
     port = 80
   }
 
+  frontend_port {
+    name = "${var.appgw_name}-port-443"
+    port = 443
+  }
+
   frontend_ip_configuration {
     name                 = "${var.appgw_name}-feip"
     public_ip_address_id = azurerm_public_ip.appgw_pip.id
+  }
+
+  ssl_certificate {
+    name     = "${var.appgw_name}-cert"
+    data     = var.ssl_certificate_pfx_base64
+    password = var.ssl_certificate_password
   }
 
   # Dynamic backend address pools
@@ -54,14 +65,15 @@ resource "azurerm_application_gateway" "appgw" {
     }
   }
 
-  # Dynamic listeners (Port 80)
+  # Dynamic listeners (Port 443 - HTTPS)
   dynamic "http_listener" {
     for_each = var.apps
     content {
       name                           = "${var.appgw_name}-${http_listener.key}-lstn"
       frontend_ip_configuration_name = "${var.appgw_name}-feip"
-      frontend_port_name             = "${var.appgw_name}-port-80"
-      protocol                       = "Http"
+      frontend_port_name             = "${var.appgw_name}-port-443"
+      protocol                       = "Https"
+      ssl_certificate_name           = "${var.appgw_name}-cert"
       host_name                      = http_listener.value.host_name
     }
   }

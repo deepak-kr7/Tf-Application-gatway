@@ -102,6 +102,10 @@ module "gateway" {
   appgw_name          = "appgw-${var.environment}"
   tags                = var.tags
 
+  # SSL certificate settings
+  ssl_certificate_pfx_base64 = var.ssl_certificate_pfx_base64
+  ssl_certificate_password   = var.ssl_certificate_password
+
   # Map the gateway_apps configuration dynamically, resolving backend IPs per subnet
   apps = {
     for k, v in var.gateway_apps : k => {
