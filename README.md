@@ -43,7 +43,14 @@ All infrastructure parameters are dynamically driven and configured inside [terr
 2. **Subnets**: Defined using the `subnets` map, specifying names and address prefixes for different tiers (Netflix, Starbucks, Bastion, and Application Gateway).
 3. **Network Security Groups (NSGs)**: Configured using the `nsgs` map, defining custom NSGs, their subnet associations, and security rules (e.g., allowing HTTP from the Application Gateway, SSH from Bastion, and HTTPS).
 4. **Virtual Machines**: Configured via the `virtual_machines` map, specifying the VM name, target subnet, and application name (e.g., Netflix App, Starbucks App).
-5. **Custom Hostnames**: Declared using `netflix_host_name` and `starbucks_host_name` variables to enable host-based routing on the Application Gateway.
+5. **Gateway Applications (dynamic routing)**: Configured via the `gateway_apps` map, which specifies the custom hostname, routing priority, and target subnet for each application (e.g. Netflix, Starbucks). The Application Gateway is automatically generated using dynamic loops based on this map.
+
+---
+
+## 🎨 Simplicity Features (सरलता विशेषताएँ)
+
+* **Locals-Free Architecture**: The project does not use complex `locals` blocks, keeping all inputs in standard variables so that the code remains clean and easy to understand.
+* **Explicit `depends_on`**: Clear dependencies are set between modules in [main.tf](file:///Users/deepak/Documents/Terraform/Application%20gatway/environments/dev/main.tf) to explicitly define the order of creation.
 
 ---
 
@@ -69,16 +76,16 @@ All infrastructure parameters are dynamically driven and configured inside [terr
      ```bash
      # Get the public IP from Terraform output
      # Then run:
-     curl -H "Host: netflix.b18g2.online" http://<public_ip>
-     curl -H "Host: starbucks.b18g2.online" http://<public_ip>
+     curl -H "Host: netflixdeep.b18g2.online" http://<public_ip>
+     curl -H "Host: starbucksdeep.b18g2.online" http://<public_ip>
      ```
 
    * **Option B: Map Hostnames in local `hosts` file**:
      Add the following entries to your local `/etc/hosts` (Mac/Linux) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
      ```text
-     <public_ip> netflix.b18g2.online
-     <public_ip> starbucks.b18g2.online
+     <public_ip> netflixdeep.b18g2.online
+     <public_ip> starbucksdeep.b18g2.online
      ```
      Then open your browser and navigate to:
-     * Netflix: [http://netflix.b18g2.online](http://netflix.b18g2.online)
-     * Starbucks: [http://starbucks.b18g2.online](http://starbucks.b18g2.online)
+     * Netflix: [http://netflixdeep.b18g2.online](http://netflixdeep.b18g2.online)
+     * Starbucks: [http://starbucksdeep.b18g2.online](http://starbucksdeep.b18g2.online)
