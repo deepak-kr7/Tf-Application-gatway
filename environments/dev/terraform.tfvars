@@ -113,12 +113,12 @@ nsgs = {
 
 gateway_apps = {
   netflix = {
-    host_name = "netflix.b18g2.online"
+    host_name = "netflixdeep.b18g2.online"
     priority  = 10
     subnet    = "netflix"
   }
   starbucks = {
-    host_name = "starbucks.b18g2.online"
+    host_name = "starbucksdeep.b18g2.online"
     priority  = 20
     subnet    = "starbucks"
   }
