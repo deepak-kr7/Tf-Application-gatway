@@ -27,7 +27,11 @@ resource "azurerm_linux_virtual_machine" "vm" {
               #!/bin/bash
               apt-get update
               apt-get install -y nginx
-              echo "<h1>Welcome to ${var.app_name} on ${var.vm_name}</h1>" > /var/www/html/index.html
+              for file in /var/www/html/index.html /var/www/html/index.nginx-debian.html; do
+                if [ -f "$file" ]; then
+                  sed -i "s/Welcome to nginx\!/Welcome to nginx\! on ${var.vm_name}/g" "$file"
+                fi
+              done
               systemctl enable nginx
               systemctl start nginx
               EOF

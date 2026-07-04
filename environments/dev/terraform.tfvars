@@ -6,7 +6,7 @@ vnet_address_space = ["10.0.0.0/16"]
 # Map for Resource Groups (for_each ready)
 resource_groups = {
   main = {
-    name     = "rg-dev-nfra"
+    name     = "rg-dev-infra"
     location = "East US"
   }
 }
