@@ -33,72 +33,50 @@ resource "azurerm_application_gateway" "appgw" {
     public_ip_address_id = azurerm_public_ip.appgw_pip.id
   }
 
-  # Netflix Backend Pool
-  backend_address_pool {
-    name         = "${var.appgw_name}-netflix-beap"
-    ip_addresses = var.netflix_backend_ips
+  # Dynamic backend address pools
+  dynamic "backend_address_pool" {
+    for_each = var.apps
+    content {
+      name         = "${var.appgw_name}-${backend_address_pool.key}-beap"
+      ip_addresses = backend_address_pool.value.backend_ips
+    }
   }
 
-  # Starbucks Backend Pool
-  backend_address_pool {
-    name         = "${var.appgw_name}-starbucks-beap"
-    ip_addresses = var.starbucks_backend_ips
+  # Dynamic HTTP settings (Port 80 on VMs)
+  dynamic "backend_http_settings" {
+    for_each = var.apps
+    content {
+      name                  = "${var.appgw_name}-${backend_http_settings.key}-be-htst"
+      cookie_based_affinity = "Disabled"
+      port                  = 80
+      protocol              = "Http"
+      request_timeout       = 60
+    }
   }
 
-  # HTTP Settings for Netflix (port 80 on VMs)
-  backend_http_settings {
-    name                  = "${var.appgw_name}-netflix-be-htst"
-    cookie_based_affinity = "Disabled"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 60
+  # Dynamic listeners (Port 80)
+  dynamic "http_listener" {
+    for_each = var.apps
+    content {
+      name                           = "${var.appgw_name}-${http_listener.key}-lstn"
+      frontend_ip_configuration_name = "${var.appgw_name}-feip"
+      frontend_port_name             = "${var.appgw_name}-port-80"
+      protocol                       = "Http"
+      host_name                      = http_listener.value.host_name
+    }
   }
 
-  # HTTP Settings for Starbucks (port 80 on VMs)
-  backend_http_settings {
-    name                  = "${var.appgw_name}-starbucks-be-htst"
-    cookie_based_affinity = "Disabled"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 60
-  }
-
-  # Listener for Netflix (port 80)
-  http_listener {
-    name                           = "${var.appgw_name}-netflix-lstn"
-    frontend_ip_configuration_name = "${var.appgw_name}-feip"
-    frontend_port_name             = "${var.appgw_name}-port-80"
-    protocol                       = "Http"
-    host_name                      = var.netflix_host_name
-  }
-
-  # Listener for Starbucks (port 80)
-  http_listener {
-    name                           = "${var.appgw_name}-starbucks-lstn"
-    frontend_ip_configuration_name = "${var.appgw_name}-feip"
-    frontend_port_name             = "${var.appgw_name}-port-80"
-    protocol                       = "Http"
-    host_name                      = var.starbucks_host_name
-  }
-
-  # Routing Rule for Netflix
-  request_routing_rule {
-    name                       = "${var.appgw_name}-netflix-rtr"
-    rule_type                  = "Basic"
-    http_listener_name         = "${var.appgw_name}-netflix-lstn"
-    backend_address_pool_name  = "${var.appgw_name}-netflix-beap"
-    backend_http_settings_name = "${var.appgw_name}-netflix-be-htst"
-    priority                   = 10
-  }
-
-  # Routing Rule for Starbucks
-  request_routing_rule {
-    name                       = "${var.appgw_name}-starbucks-rtr"
-    rule_type                  = "Basic"
-    http_listener_name         = "${var.appgw_name}-starbucks-lstn"
-    backend_address_pool_name  = "${var.appgw_name}-starbucks-beap"
-    backend_http_settings_name = "${var.appgw_name}-starbucks-be-htst"
-    priority                   = 20
+  # Dynamic request routing rules
+  dynamic "request_routing_rule" {
+    for_each = var.apps
+    content {
+      name                       = "${var.appgw_name}-${request_routing_rule.key}-rtr"
+      rule_type                  = "Basic"
+      http_listener_name         = "${var.appgw_name}-${request_routing_rule.key}-lstn"
+      backend_address_pool_name  = "${var.appgw_name}-${request_routing_rule.key}-beap"
+      backend_http_settings_name = "${var.appgw_name}-${request_routing_rule.key}-be-htst"
+      priority                   = request_routing_rule.value.priority
+    }
   }
 
   tags = var.tags

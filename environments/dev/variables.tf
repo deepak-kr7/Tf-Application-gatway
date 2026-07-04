@@ -68,16 +68,13 @@ variable "nsgs" {
   description = "Map of NSGs to create with their security rules"
 }
 
-variable "netflix_host_name" {
-  type        = string
-  description = "Host name for the Netflix site"
-  default     = "netflix.b18g2.online"
-}
-
-variable "starbucks_host_name" {
-  type        = string
-  description = "Host name for the Starbucks site"
-  default     = "starbucks.b18g2.online"
+variable "gateway_apps" {
+  type = map(object({
+    host_name = string
+    priority  = number
+    subnet    = string
+  }))
+  description = "Application configurations for the Gateway routing"
 }
 
 variable "tags" {

@@ -111,5 +111,15 @@ nsgs = {
   }
 }
 
-netflix_host_name   = "netflix.b18g2.online"
-starbucks_host_name = "starbucks.b18g2.online"
+gateway_apps = {
+  netflix = {
+    host_name = "netflix.b18g2.online"
+    priority  = 10
+    subnet    = "netflix"
+  }
+  starbucks = {
+    host_name = "starbucks.b18g2.online"
+    priority  = 20
+    subnet    = "starbucks"
+  }
+}

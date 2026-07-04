@@ -25,30 +25,17 @@ variable "capacity" {
   default     = 2
 }
 
-variable "netflix_backend_ips" {
-  type        = list(string)
-  description = "List of private IPs for the Netflix VMs"
-}
-
-variable "starbucks_backend_ips" {
-  type        = list(string)
-  description = "List of private IPs for the Starbucks VMs"
+variable "apps" {
+  type = map(object({
+    host_name   = string
+    priority    = number
+    backend_ips = list(string)
+  }))
+  description = "Application routing configuration with hostname, priority and backend IPs"
 }
 
 variable "tags" {
   type        = map(string)
   default     = {}
   description = "Tags to apply to resources"
-}
-
-variable "netflix_host_name" {
-  type        = string
-  description = "Host name for the Netflix site"
-  default     = "netflix.b18g2.online"
-}
-
-variable "starbucks_host_name" {
-  type        = string
-  description = "Host name for the Starbucks site"
-  default     = "starbucks.b18g2.online"
 }

@@ -100,14 +100,16 @@ module "gateway" {
   location            = module.resource_group["main"].resource_group_location
   appgw_subnet_id     = module.subnet["appgw"].subnet_id
   appgw_name          = "appgw-${var.environment}"
-
-  # Getting private IPs of all VMs in the netflix and starbucks subnets
-  netflix_backend_ips   = [for k, v in module.nic : v.private_ip if var.virtual_machines[k].subnet == "netflix"]
-  starbucks_backend_ips = [for k, v in module.nic : v.private_ip if var.virtual_machines[k].subnet == "starbucks"]
-
-  netflix_host_name   = var.netflix_host_name
-  starbucks_host_name = var.starbucks_host_name
   tags                = var.tags
+
+  # Map the gateway_apps configuration dynamically, resolving backend IPs per subnet
+  apps = {
+    for k, v in var.gateway_apps : k => {
+      host_name   = v.host_name
+      priority    = v.priority
+      backend_ips = [for vm_k, vm_v in module.nic : vm_v.private_ip if var.virtual_machines[vm_k].subnet == v.subnet]
+    }
+  }
 
   # Depends on the backend VMs and Gateway Subnet creation
   depends_on = [module.vm, module.subnet]
