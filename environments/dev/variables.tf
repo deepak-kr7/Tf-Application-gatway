@@ -79,3 +79,14 @@ variable "starbucks_host_name" {
   description = "Host name for the Starbucks site"
   default     = "starbucks.b18g2.online"
 }
+
+variable "tags" {
+  type        = map(string)
+  description = "Default tags to apply to all resources"
+  default = {
+    Environment = "dev"
+    ManagedBy   = "Terraform"
+    Project     = "AppGatewayDemo"
+  }
+}
+

@@ -9,12 +9,12 @@ output "vnet_name" {
 }
 
 output "netflix_private_ips" {
-  value       = local.netflix_backend_ips
+  value       = [for k, v in module.nic : v.private_ip if var.virtual_machines[k].subnet == "netflix"]
   description = "Private IPs of the Netflix application VMs"
 }
 
 output "starbucks_private_ips" {
-  value       = local.starbucks_backend_ips
+  value       = [for k, v in module.nic : v.private_ip if var.virtual_machines[k].subnet == "starbucks"]
   description = "Private IPs of the Starbucks application VMs"
 }
 
