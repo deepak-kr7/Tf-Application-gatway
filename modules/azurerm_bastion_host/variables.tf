@@ -24,3 +24,22 @@ variable "tags" {
   default     = {}
   description = "Tags to apply to resources"
 }
+
+variable "pip_allocation_method" {
+  type        = string
+  description = "Public IP allocation method"
+  default     = "Static"
+}
+
+variable "pip_sku" {
+  type        = string
+  description = "Public IP SKU"
+  default     = "Standard"
+}
+
+variable "ip_config_name" {
+  type        = string
+  description = "Name of the IP configuration"
+  default     = "configuration"
+}
+

@@ -2,8 +2,8 @@ resource "azurerm_public_ip" "appgw_pip" {
   name                = "${var.appgw_name}-pip"
   resource_group_name = var.resource_group_name
   location            = var.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
+  allocation_method   = var.pip_allocation_method
+  sku                 = var.pip_sku
   tags                = var.tags
 }
 
@@ -13,13 +13,13 @@ resource "azurerm_application_gateway" "appgw" {
   location            = var.location
 
   sku {
-    name     = "Standard_v2"
-    tier     = "Standard_v2"
+    name     = var.sku_name
+    tier     = var.sku_tier
     capacity = var.capacity
   }
 
   gateway_ip_configuration {
-    name      = "appgw-ip-config"
+    name      = var.gateway_ip_config_name
     subnet_id = var.appgw_subnet_id
   }
 
@@ -58,10 +58,10 @@ resource "azurerm_application_gateway" "appgw" {
     for_each = var.apps
     content {
       name                  = "${var.appgw_name}-${backend_http_settings.key}-be-htst"
-      cookie_based_affinity = "Disabled"
-      port                  = 80
-      protocol              = "Http"
-      request_timeout       = 60
+      cookie_based_affinity = var.cookie_based_affinity
+      port                  = var.backend_port
+      protocol              = var.backend_protocol
+      request_timeout       = var.backend_request_timeout
     }
   }
 
@@ -95,7 +95,7 @@ resource "azurerm_application_gateway" "appgw" {
     for_each = var.apps
     content {
       name                       = "${var.appgw_name}-${request_routing_rule.key}-http-rtr"
-      rule_type                  = "Basic"
+      rule_type                  = var.rule_type
       http_listener_name         = "${var.appgw_name}-${request_routing_rule.key}-http-lstn"
       backend_address_pool_name  = "${var.appgw_name}-${request_routing_rule.key}-beap"
       backend_http_settings_name = "${var.appgw_name}-${request_routing_rule.key}-be-htst"
@@ -108,7 +108,7 @@ resource "azurerm_application_gateway" "appgw" {
     for_each = var.apps
     content {
       name                       = "${var.appgw_name}-${request_routing_rule.key}-https-rtr"
-      rule_type                  = "Basic"
+      rule_type                  = var.rule_type
       http_listener_name         = "${var.appgw_name}-${request_routing_rule.key}-https-lstn"
       backend_address_pool_name  = "${var.appgw_name}-${request_routing_rule.key}-beap"
       backend_http_settings_name = "${var.appgw_name}-${request_routing_rule.key}-be-htst"

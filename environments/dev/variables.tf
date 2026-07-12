@@ -99,4 +99,53 @@ variable "ssl_certificate_password" {
   sensitive   = true
 }
 
+variable "aks_clusters" {
+  type = map(object({
+    cluster_name                      = string
+    dns_prefix                        = string
+    resource_group_key                = string
+    default_node_pool_name            = optional(string, "default")
+    default_node_pool_node_count      = optional(number, 1)
+    default_node_pool_vm_size         = optional(string, "Standard_DS2_v2")
+    default_node_pool_os_disk_size_gb = optional(number, 30)
+    default_node_pool_type            = optional(string, "VirtualMachineScaleSets")
+    identity_type                     = optional(string, "SystemAssigned")
+  }))
+  description = "Map of AKS clusters to create"
+  default     = {}
+}
+
+variable "container_registries" {
+  type = map(object({
+    acr_name           = string
+    resource_group_key = string
+    sku                = optional(string, "Basic")
+    admin_enabled      = optional(bool, false)
+  }))
+  description = "Map of Container Registries to create"
+  default     = {}
+}
+
+variable "storage_accounts" {
+  type = map(object({
+    storage_account_name     = string
+    resource_group_key       = string
+    account_tier             = optional(string, "Standard")
+    account_replication_type = optional(string, "LRS")
+  }))
+  description = "Map of Storage Accounts to create"
+  default     = {}
+}
+
+variable "storage_containers" {
+  type = map(object({
+    container_name        = string
+    storage_account_key   = string
+    container_access_type = optional(string, "private")
+  }))
+  description = "Map of Storage Containers to create"
+  default     = {}
+}
+
+
 

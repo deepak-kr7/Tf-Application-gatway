@@ -37,3 +37,20 @@ output "starbucks_url" {
   value       = "https://${var.gateway_apps["starbucks"].host_name}"
   description = "URL to access Starbucks app through Application Gateway"
 }
+
+output "aks_kube_configs" {
+  value       = { for k, v in module.aks : k => v.kube_config }
+  sensitive   = true
+  description = "Kube configurations for the created AKS clusters"
+}
+
+output "acr_login_servers" {
+  value       = { for k, v in module.acr : k => v.acr_login_server }
+  description = "Login servers for the created Azure Container Registries"
+}
+
+output "storage_account_endpoints" {
+  value       = { for k, v in module.storage_account : k => v.primary_blob_endpoint }
+  description = "Primary blob endpoints for the created Storage Accounts"
+}
+
