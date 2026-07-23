@@ -1,7 +1,8 @@
 resource "azurerm_virtual_network" "vnet" {
-  name                = var.vnet_name
-  address_space       = var.vnet_address_space
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  for_each            = var.vnets
+  name                = each.value.name
+  address_space       = each.value.vnet_address_space
+  location            = each.value.location
+  resource_group_name = each.value.resource_group_name
   tags                = var.tags
 }
