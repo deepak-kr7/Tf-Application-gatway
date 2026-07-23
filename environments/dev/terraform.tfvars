@@ -13,6 +13,15 @@ resource_groups = {
     name     = "rg-dev-infra"
     location = "East US"
   }
+main2 = {
+    name     = "rg-dev-infra2"
+    location = "East US"
+  }
+
+main3= {
+    name     = "rg-dev-infra3"
+    location = "East US"
+  }
 }
 
 # 2. Virtual Networks
@@ -282,7 +291,7 @@ container_registries = {
 # 11. Storage Accounts
 storage_accounts = {
   main = {
-    storage_account_name     = "sadevstoreappgw"
+    storage_account_name     = "sadevstoreappgw64537"
     resource_group_name      = "rg-dev-infra"
     location                 = "East US"
     account_tier             = "Standard"

@@ -61,11 +61,11 @@ module "bastion" {
 }
 
 # 8. Web Application Firewall (WAF) Policy Module
-module "waf_policy" {
-  source       = "../../modules/azurerm_web_application_firewall_policy"
-  waf_policies = var.waf_policies
-  tags         = var.tags
-}
+# module "waf_policy" {
+#   source       = "../../modules/azurerm_web_application_firewall_policy"
+#   waf_policies = var.waf_policies
+#   tags         = var.tags
+# }
 
 # 9. Application Gateway Module
 module "gateway" {
