@@ -42,11 +42,134 @@ stages:
         backendAzureRmKey: '$(stateFile)'
 
 #=========================================================
-# Stage 2 - Terraform Plan
+# Stage 2 - Terraform Security Scan
+#=========================================================
+- stage: SecurityScan
+  displayName: "Terraform Security Scan"
+  dependsOn: Init
+
+  jobs:
+  - job: SecurityScan
+    displayName: "Run Security Tools"
+
+    steps:
+    - checkout: self
+
+    # Terraform Validate
+    - task: PowerShell@2
+      displayName: "Terraform Validate"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          terraform validate
+
+    # Terraform Format Check
+    - task: PowerShell@2
+      displayName: "Terraform Format Check"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          terraform fmt -check -recursive
+
+    # TFLint
+    - task: PowerShell@2
+      displayName: "TFLint"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          tflint --init
+          tflint --format json > tflint.json
+
+    # Checkov
+    - task: PowerShell@2
+      displayName: "Checkov"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          checkov -d . -o json > checkov.json
+
+    # tfsec
+    - task: PowerShell@2
+      displayName: "tfsec"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          tfsec . --format json --out tfsec
+
+    # Terrascan
+    - task: PowerShell@2
+      displayName: "Terrascan"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          terrascan scan -d . -o json > terrascan.json
+
+    # Semgrep
+    - task: PowerShell@2
+      displayName: "Semgrep"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          semgrep scan --config auto --json --output semgrep.json .
+
+    # Gitleaks
+    - task: PowerShell@2
+      displayName: "Gitleaks"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          gitleaks detect --source . --report-format json --report-path gitleaks.json
+
+    # TruffleHog
+    - task: PowerShell@2
+      displayName: "TruffleHog"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          trufflehog filesystem . --json > trufflehog.json
+
+    # Infracost
+    - task: PowerShell@2
+      displayName: "Infracost"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        script: |
+          cd "$(workingDir)"
+          infracost scan --path . --format json --out-file infracost.json
+
+    # Publish Reports
+    - task: PublishBuildArtifacts@1
+      displayName: "Publish Security Reports"
+      inputs:
+        PathtoPublish: "$(workingDir)"
+        ArtifactName: "SecurityReports"
+
+
+#=========================================================
+# Stage 3 - Terraform Plan
 #=========================================================
 - stage: Plan
   displayName: "Terraform Plan"
-  dependsOn: Init
+  dependsOn: SecurityScan
 
   jobs:
   - job: Plan
@@ -76,37 +199,37 @@ stages:
         environmentServiceNameAzureRM: '$(serviceConnection)'
         commandOptions: '-out=tfplan'
 
-#=========================================================
-# Stage 3 - Terraform Apply
-#=========================================================
-- stage: Apply
-  displayName: "Terraform Apply"
-  dependsOn: Plan
+# #=========================================================
+# # Stage 4 - Terraform Apply
+# #=========================================================
+# - stage: Apply
+#   displayName: "Terraform Apply"
+#   dependsOn: Plan
 
-  jobs:
-  - job: Apply
-    displayName: "Terraform Apply"
+#   jobs:
+#   - job: Apply
+#     displayName: "Terraform Apply"
 
-    steps:
-    - checkout: self
+#     steps:
+#     - checkout: self
 
-    - task: TerraformTask@5
-      displayName: "Terraform Init"
-      inputs:
-        provider: 'azurerm'
-        command: 'init'
-        workingDirectory: '$(workingDir)'
-        backendServiceArm: '$(serviceConnection)'
-        backendAzureRmResourceGroupName: '$(resourceGroup)'
-        backendAzureRmStorageAccountName: '$(storageAccount)'
-        backendAzureRmContainerName: '$(containerName)'
-        backendAzureRmKey: '$(stateFile)'
+#     - task: TerraformTask@5
+#       displayName: "Terraform Init"
+#       inputs:
+#         provider: 'azurerm'
+#         command: 'init'
+#         workingDirectory: '$(workingDir)'
+#         backendServiceArm: '$(serviceConnection)'
+#         backendAzureRmResourceGroupName: '$(resourceGroup)'
+#         backendAzureRmStorageAccountName: '$(storageAccount)'
+#         backendAzureRmContainerName: '$(containerName)'
+#         backendAzureRmKey: '$(stateFile)'
 
-    - task: TerraformTask@5
-      displayName: "Terraform Apply"
-      inputs:
-        provider: 'azurerm'
-        command: 'apply'
-        workingDirectory: '$(workingDir)'
-        environmentServiceNameAzureRM: '$(serviceConnection)'
-        commandOptions: '-auto-approve'
+#     - task: TerraformTask@5
+#       displayName: "Terraform Apply"
+#       inputs:
+#         provider: 'azurerm'
+#         command: 'apply'
+#         workingDirectory: '$(workingDir)'
+#         environmentServiceNameAzureRM: '$(serviceConnection)'
+#         commandOptions: '-auto-approve'
