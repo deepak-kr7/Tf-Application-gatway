@@ -17,36 +17,10 @@ variables:
 stages:
 
 #=========================================================
-# Stage 1 - Terraform Init
-#=========================================================
-- stage: Init
-  displayName: "Terraform Init"
-
-  jobs:
-  - job: Init
-    displayName: "Initialize Terraform"
-
-    steps:
-    - checkout: self
-
-    - task: TerraformTask@5
-      displayName: "Terraform Init"
-      inputs:
-        provider: 'azurerm'
-        command: 'init'
-        workingDirectory: '$(workingDir)'
-        backendServiceArm: '$(serviceConnection)'
-        backendAzureRmResourceGroupName: '$(resourceGroup)'
-        backendAzureRmStorageAccountName: '$(storageAccount)'
-        backendAzureRmContainerName: '$(containerName)'
-        backendAzureRmKey: '$(stateFile)'
-
-#=========================================================
-# Stage 2 - Terraform Security Scan (Consolidated Task)
+# STAGE 1: CI - Security Scan & Audit
 #=========================================================
 - stage: SecurityScan
-  displayName: "Terraform Security Scan"
-  dependsOn: Init
+  displayName: "CI - Security Scan & Audit"
 
   jobs:
   - job: SecurityScan
@@ -55,14 +29,11 @@ stages:
     steps:
     - checkout: self
 
-    # Single combined task to run all security tools
     - powershell: |
         $ErrorActionPreference = "Continue"
-        
-        # Create reports folder
         mkdir -p reports
 
-        Write-Host "1. Terraform Init + Validate..."
+        Write-Host "1. Terraform Init & Validate..."
         terraform init -backend=false -input=false
         terraform validate | Out-File reports/terraform_validate.txt
 
@@ -94,13 +65,11 @@ stages:
         Write-Host "10. Infracost..."
         infracost breakdown --path . --format json --out-file reports/infracost.json
 
-        # Reset exit code so script doesn't fail task
         exit 0
-      displayName: "Run All Security Scans"
+      displayName: "Run Security Scans"
       workingDirectory: "$(workingDir)"
       continueOnError: true
 
-    # Publish Reports (Fixed path with forward slash)
     - task: PublishBuildArtifacts@1
       displayName: "Publish Security Reports"
       inputs:
@@ -108,15 +77,15 @@ stages:
         ArtifactName: "SecurityReports"
 
 #=========================================================
-# Stage 3 - Terraform Plan
+# STAGE 2: CI - Terraform Build & Save Plan Artifact
 #=========================================================
 - stage: Plan
-  displayName: "Terraform Plan"
+  displayName: "CI - Build & Terraform Plan"
   dependsOn: SecurityScan
 
   jobs:
   - job: Plan
-    displayName: "Terraform Plan"
+    displayName: "Generate Terraform Plan"
 
     steps:
     - checkout: self
@@ -133,6 +102,7 @@ stages:
         backendAzureRmContainerName: '$(containerName)'
         backendAzureRmKey: '$(stateFile)'
 
+    # Generate Plan File (Build Step)
     - task: TerraformTask@5
       displayName: "Terraform Plan"
       inputs:
@@ -140,4 +110,59 @@ stages:
         command: 'plan'
         workingDirectory: '$(workingDir)'
         environmentServiceNameAzureRM: '$(serviceConnection)'
-        commandOptions: '-out=tfplan'
+        commandOptions: '-out=$(workingDir)/tfplan'
+
+    # Save Plan File as Pipeline Artifact
+    - publish: $(workingDir)/tfplan
+      artifact: tfplan
+      displayName: "Save Terraform Plan Artifact"
+
+#=========================================================
+# STAGE 3: CD - Terraform Apply (Deployment)
+#=========================================================
+- stage: Apply
+  displayName: "CD - Deploy Infrastructure"
+  dependsOn: Plan
+  condition: succeeded()
+
+  jobs:
+  - deployment: Apply
+    displayName: "Terraform Apply"
+    environment: 'dev-environment'  # Azure DevOps Environment (for Approvals)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          # Download saved Plan Artifact from CI Stage
+          - download: current
+            artifact: tfplan
+            displayName: "Download Saved Plan Artifact"
+
+          - task: TerraformTask@5
+            displayName: "Terraform Init"
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(workingDir)'
+              backendServiceArm: '$(serviceConnection)'
+              backendAzureRmResourceGroupName: '$(resourceGroup)'
+              backendAzureRmStorageAccountName: '$(storageAccount)'
+              backendAzureRmContainerName: '$(containerName)'
+              backendAzureRmKey: '$(stateFile)'
+
+          # Copy plan file to working directory
+          - powershell: |
+              Copy-Item "$(Pipeline.Workspace)/tfplan/tfplan" -Destination "$(workingDir)/tfplan"
+            displayName: "Prepare Plan File for Apply"
+
+          # Apply using exact saved plan
+          - task: TerraformTask@5
+            displayName: "Terraform Apply"
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '$(workingDir)'
+              environmentServiceNameAzureRM: '$(serviceConnection)'
+              commandOptions: 'tfplan'
