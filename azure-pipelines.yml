@@ -55,25 +55,34 @@ stages:
     steps:
     - checkout: self
 
-    # Terraform Validate
+    # Create Reports Folder
     - task: PowerShell@2
-      displayName: "Terraform Validate"
-      continueOnError: true
+      displayName: "Create Reports Folder"
       inputs:
         targetType: inline
         script: |
-          cd "$(workingDir)"
-          terraform validate
+          New-Item -ItemType Directory -Force "$(workingDir)\reports" | Out-Null
 
-    # Terraform Format Check
+    # Terraform Init + Validate
+    - task: PowerShell@2
+      displayName: "Terraform Init + Validate"
+      continueOnError: true
+      inputs:
+        targetType: inline
+        workingDirectory: "$(workingDir)"
+        script: |
+          terraform init -backend=false -input=false
+          terraform validate | Out-File reports\terraform_validate.txt
+
+    # Terraform Format
     - task: PowerShell@2
       displayName: "Terraform Format Check"
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          terraform fmt -check -recursive
+          terraform fmt -check -recursive | Out-File reports\terraform_fmt.txt
 
     # TFLint
     - task: PowerShell@2
@@ -81,10 +90,10 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
           tflint --init
-          tflint --format json > tflint.json
+          tflint --format json > reports\tflint.json
 
     # Checkov
     - task: PowerShell@2
@@ -92,9 +101,9 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          checkov -d . -o json > checkov.json
+          checkov -d . -o json > reports\checkov.json
 
     # tfsec
     - task: PowerShell@2
@@ -102,9 +111,9 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          tfsec . --format json --out tfsec
+          tfsec . --format json --out reports\tfsec
 
     # Terrascan
     - task: PowerShell@2
@@ -112,9 +121,9 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          terrascan scan -d . -o json > terrascan.json
+          terrascan scan -d . -o json > reports\terrascan.json
 
     # Semgrep
     - task: PowerShell@2
@@ -122,9 +131,9 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          semgrep scan --config auto --json --output semgrep.json .
+          semgrep scan --config auto --exclude reports --exclude .terraform --json --output reports\semgrep.json .
 
     # Gitleaks
     - task: PowerShell@2
@@ -132,9 +141,9 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          gitleaks detect --source . --report-format json --report-path gitleaks.json
+          gitleaks detect --source . --report-format json --report-path reports\gitleaks.json
 
     # TruffleHog
     - task: PowerShell@2
@@ -142,9 +151,9 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          trufflehog filesystem . --json > trufflehog.json
+          trufflehog filesystem . --json > reports\trufflehog.json
 
     # Infracost
     - task: PowerShell@2
@@ -152,17 +161,16 @@ stages:
       continueOnError: true
       inputs:
         targetType: inline
+        workingDirectory: "$(workingDir)"
         script: |
-          cd "$(workingDir)"
-          infracost scan --path . --format json --out-file infracost.json
+          infracost scan --path . --format json --out-file reports\infracost.json
 
     # Publish Reports
     - task: PublishBuildArtifacts@1
       displayName: "Publish Security Reports"
       inputs:
-        PathtoPublish: "$(workingDir)"
+        PathtoPublish: "$(workingDir)\reports"
         ArtifactName: "SecurityReports"
-
 
 #=========================================================
 # Stage 3 - Terraform Plan
