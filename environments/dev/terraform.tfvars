@@ -13,15 +13,7 @@ resource_groups = {
     name     = "rg-dev-infra"
     location = "East US"
   }
-main2 = {
-    name     = "rg-dev-infra2"
-    location = "East US"
-  }
 
-main3= {
-    name     = "rg-dev-infra3"
-    location = "East US"
-  }
 }
 
 # 2. Virtual Networks
@@ -225,16 +217,7 @@ bastions = {
   }
 }
 
-# 7. WAF Policy
-waf_policies = {
-  main = {
-    policy_name         = "waf-policy-dev"
-    resource_group_name = "rg-dev-infra"
-    location            = "East US"
-  }
-}
-
-# 8. Application Gateway
+# 7. Application Gateway
 gateways = {
   main = {
     name                = "appgw-dev"
@@ -242,15 +225,14 @@ gateways = {
     location            = "East US"
     vnet_name           = "vnet-dev"
     appgw_subnet_name   = "sb-appgw"
-    waf_policy_name     = "waf-policy-dev"
     apps = {
       netflix = {
-        host_name         = "netflixdeep.b18g2.online"
+        host_name         = "netflix.b18g2.online"
         priority          = 10
         backend_nic_names = ["netflix-vm-1-nic", "netflix-vm-2-nic"]
       }
       starbucks = {
-        host_name         = "starbucksdeep.b18g2.online"
+        host_name         = "starbuckdeep.b18g2.online"
         priority          = 20
         backend_nic_names = ["starbucks-vm-1-nic", "starbucks-vm-2-nic"]
       }

@@ -13,11 +13,10 @@ resource "azurerm_application_gateway" "appgw" {
   name                = each.value.name
   resource_group_name = each.value.resource_group_name
   location            = each.value.location
-  firewall_policy_id  = data.azurerm_web_application_firewall_policy.waf[each.key].id
 
   sku {
-    name     = "WAF_v2"
-    tier     = "WAF_v2"
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
     capacity = 2
   }
 

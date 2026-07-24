@@ -10,7 +10,10 @@ variable "subnets" { type = any }
 variable "virtual_machines" { type = any }
 variable "nsgs" { type = any }
 variable "bastions" { type = any }
-variable "waf_policies" { type = any }
+variable "waf_policies" {
+  type    = any
+  default = {}
+}
 variable "gateways" { type = any }
 variable "aks_clusters" { type = any }
 variable "container_registries" { type = any }

@@ -60,14 +60,7 @@ module "bastion" {
   depends_on = [module.subnet]
 }
 
-# 8. Web Application Firewall (WAF) Policy Module
-# module "waf_policy" {
-#   source       = "../../modules/azurerm_web_application_firewall_policy"
-#   waf_policies = var.waf_policies
-#   tags         = var.tags
-# }
-
-# 9. Application Gateway Module
+# 8. Application Gateway Module
 module "gateway" {
   source                     = "../../modules/azurerm_application_gateway"
   gateways                   = var.gateways
@@ -76,7 +69,7 @@ module "gateway" {
   ssl_certificate_password   = var.ssl_certificate_password
   tags                       = var.tags
 
-  depends_on = [module.vm, module.subnet, module.waf_policy]
+  depends_on = [module.vm, module.subnet]
 }
 
 # 10. AKS Clusters Module
