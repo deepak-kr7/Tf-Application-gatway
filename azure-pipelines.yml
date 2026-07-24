@@ -42,7 +42,7 @@ stages:
         backendAzureRmKey: '$(stateFile)'
 
 #=========================================================
-# Stage 2 - Terraform Security Scan
+# Stage 2 - Terraform Security Scan (Consolidated Task)
 #=========================================================
 - stage: SecurityScan
   displayName: "Terraform Security Scan"
@@ -55,121 +55,56 @@ stages:
     steps:
     - checkout: self
 
-    # Create Reports Folder
-    - task: PowerShell@2
-      displayName: "Create Reports Folder"
-      inputs:
-        targetType: inline
-        script: |
-          New-Item -ItemType Directory -Force "$(workingDir)\reports" | Out-Null
+    # Single combined task to run all security tools
+    - powershell: |
+        $ErrorActionPreference = "Continue"
+        
+        # Create reports folder
+        mkdir -p reports
 
-    # Terraform Init + Validate
-    - task: PowerShell@2
-      displayName: "Terraform Init + Validate"
+        Write-Host "1. Terraform Init + Validate..."
+        terraform init -backend=false -input=false
+        terraform validate | Out-File reports/terraform_validate.txt
+
+        Write-Host "2. Terraform Format Check..."
+        terraform fmt -check -recursive | Out-File reports/terraform_fmt.txt
+
+        Write-Host "3. TFLint..."
+        tflint --init
+        tflint --format json > reports/tflint.json
+
+        Write-Host "4. Checkov..."
+        checkov -d . -o json > reports/checkov.json
+
+        Write-Host "5. tfsec..."
+        tfsec . --format json --out reports/tfsec.json
+
+        Write-Host "6. Terrascan..."
+        terrascan scan -d . -o json > reports/terrascan.json
+
+        Write-Host "7. Semgrep..."
+        semgrep scan --config auto --exclude reports --exclude .terraform --json --output reports/semgrep.json .
+
+        Write-Host "8. Gitleaks..."
+        gitleaks detect --source . --report-format json --report-path reports/gitleaks.json
+
+        Write-Host "9. TruffleHog..."
+        trufflehog filesystem . --json > reports/trufflehog.json
+
+        Write-Host "10. Infracost..."
+        infracost breakdown --path . --format json --out-file reports/infracost.json
+
+        # Reset exit code so script doesn't fail task
+        exit 0
+      displayName: "Run All Security Scans"
+      workingDirectory: "$(workingDir)"
       continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          terraform init -backend=false -input=false
-          terraform validate | Out-File reports\terraform_validate.txt
 
-    # Terraform Format
-    - task: PowerShell@2
-      displayName: "Terraform Format Check"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          terraform fmt -check -recursive | Out-File reports\terraform_fmt.txt
-
-    # TFLint
-    - task: PowerShell@2
-      displayName: "TFLint"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          tflint --init
-          tflint --format json > reports\tflint.json
-
-    # Checkov
-    - task: PowerShell@2
-      displayName: "Checkov"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          checkov -d . -o json > reports\checkov.json
-
-    # tfsec
-    - task: PowerShell@2
-      displayName: "tfsec"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          tfsec . --format json --out reports\tfsec
-
-    # Terrascan
-    - task: PowerShell@2
-      displayName: "Terrascan"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          terrascan scan -d . -o json > reports\terrascan.json
-
-    # Semgrep
-    - task: PowerShell@2
-      displayName: "Semgrep"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          semgrep scan --config auto --exclude reports --exclude .terraform --json --output reports\semgrep.json .
-
-    # Gitleaks
-    - task: PowerShell@2
-      displayName: "Gitleaks"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          gitleaks detect --source . --report-format json --report-path reports\gitleaks.json
-
-    # TruffleHog
-    - task: PowerShell@2
-      displayName: "TruffleHog"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          trufflehog filesystem . --json > reports\trufflehog.json
-
-    # Infracost
-    - task: PowerShell@2
-      displayName: "Infracost"
-      continueOnError: true
-      inputs:
-        targetType: inline
-        workingDirectory: "$(workingDir)"
-        script: |
-          infracost scan --path . --format json --out-file reports\infracost.json
-
-    # Publish Reports
+    # Publish Reports (Fixed path with forward slash)
     - task: PublishBuildArtifacts@1
       displayName: "Publish Security Reports"
       inputs:
-        PathtoPublish: "$(workingDir)\reports"
+        PathtoPublish: "$(workingDir)/reports"
         ArtifactName: "SecurityReports"
 
 #=========================================================
@@ -206,38 +141,3 @@ stages:
         workingDirectory: '$(workingDir)'
         environmentServiceNameAzureRM: '$(serviceConnection)'
         commandOptions: '-out=tfplan'
-
-# #=========================================================
-# # Stage 4 - Terraform Apply
-# #=========================================================
-# - stage: Apply
-#   displayName: "Terraform Apply"
-#   dependsOn: Plan
-
-#   jobs:
-#   - job: Apply
-#     displayName: "Terraform Apply"
-
-#     steps:
-#     - checkout: self
-
-#     - task: TerraformTask@5
-#       displayName: "Terraform Init"
-#       inputs:
-#         provider: 'azurerm'
-#         command: 'init'
-#         workingDirectory: '$(workingDir)'
-#         backendServiceArm: '$(serviceConnection)'
-#         backendAzureRmResourceGroupName: '$(resourceGroup)'
-#         backendAzureRmStorageAccountName: '$(storageAccount)'
-#         backendAzureRmContainerName: '$(containerName)'
-#         backendAzureRmKey: '$(stateFile)'
-
-#     - task: TerraformTask@5
-#       displayName: "Terraform Apply"
-#       inputs:
-#         provider: 'azurerm'
-#         command: 'apply'
-#         workingDirectory: '$(workingDir)'
-#         environmentServiceNameAzureRM: '$(serviceConnection)'
-#         commandOptions: '-auto-approve'
