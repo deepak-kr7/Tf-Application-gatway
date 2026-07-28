@@ -228,7 +228,7 @@ gateways = {
     appgw_subnet_name   = "sb-appgw"
     apps = {
       netflix = {
-        host_name         = "netflix.b18g2.online"
+        host_name         = "netflixdeep.b18g2.online"
         priority          = 10
         backend_nic_names = ["netflix-vm-1-nic", "netflix-vm-2-nic"]
       }
