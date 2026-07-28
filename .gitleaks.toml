@@ -1,0 +1,13 @@
+title = "Custom Gitleaks Config for Terraform"
+
+[[rules]]
+id = "terraform-hardcoded-password"
+description = "Hardcoded password or secret in Terraform configuration or tfvars file"
+regex = '''(?i)(admin_password|password|secret|ssl_certificate_password)\s*=\s*"([^"]+)"'''
+secretGroup = 2
+
+[[rules]]
+id = "terraform-hardcoded-secret-key"
+description = "Hardcoded API key or token in Terraform configuration"
+regex = '''(?i)(api_key|token|access_key|secret_key)\s*=\s*"([^"]+)"'''
+secretGroup = 2

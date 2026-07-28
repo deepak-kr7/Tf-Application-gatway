@@ -40,10 +40,13 @@ resource "azurerm_application_gateway" "appgw" {
     public_ip_address_id = azurerm_public_ip.appgw_pip[each.key].id
   }
 
-  ssl_certificate {
-    name     = "${each.value.name}-cert"
-    data     = var.ssl_certificate_pfx_base64
-    password = var.ssl_certificate_password
+  dynamic "ssl_certificate" {
+    for_each = var.ssl_certificate_pfx_base64 != null && var.ssl_certificate_pfx_base64 != "" ? [1] : []
+    content {
+      name     = "${each.value.name}-cert"
+      data     = var.ssl_certificate_pfx_base64
+      password = var.ssl_certificate_password
+    }
   }
 
   dynamic "backend_address_pool" {
@@ -81,7 +84,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "http_listener" {
-    for_each = each.value.apps
+    for_each = var.ssl_certificate_pfx_base64 != null && var.ssl_certificate_pfx_base64 != "" ? each.value.apps : {}
     content {
       name                           = "${each.value.name}-${http_listener.key}-https-lstn"
       frontend_ip_configuration_name = "${each.value.name}-feip"
@@ -105,7 +108,7 @@ resource "azurerm_application_gateway" "appgw" {
   }
 
   dynamic "request_routing_rule" {
-    for_each = each.value.apps
+    for_each = var.ssl_certificate_pfx_base64 != null && var.ssl_certificate_pfx_base64 != "" ? each.value.apps : {}
     content {
       name                       = "${each.value.name}-${request_routing_rule.key}-https-rtr"
       rule_type                  = "Basic"

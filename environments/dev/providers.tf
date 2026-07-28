@@ -5,15 +5,17 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
-  backend "azurerm" {
-    resource_group_name  = "demo_rg"
-    storage_account_name = "demostg1344"
-    container_name       = "democ"
-    key                  = "firstcicd.tfstate"
-  }
-
-
+  # backend "azurerm" {
+  #   resource_group_name  = "rg_backend_tfstate"
+  #   storage_account_name = "backendstoragare07856"
+  #   container_name       = "tfstate"
+  #   key                  = "dev.tfstate"
+  # }
 }
 
 provider "azurerm" {

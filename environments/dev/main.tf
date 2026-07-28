@@ -40,15 +40,39 @@ module "nic" {
   depends_on = [module.subnet]
 }
 
+# Key Vault Module
+resource "random_string" "kv_suffix" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
+module "key_vault" {
+  source              = "../../modules/azurerm_key_vault"
+  key_vault_name      = "${var.key_vault_details.name_prefix}-${random_string.kv_suffix.result}"
+  location            = var.key_vault_details.location
+  resource_group_name = var.key_vault_details.resource_group_name
+  tenant_id           = var.key_vault_details.tenant_id
+  object_id           = var.key_vault_details.object_id
+  secrets = merge(
+    var.admin_password != null && var.admin_password != "" ? { "vm-admin-password" = var.admin_password } : {},
+    var.ssl_certificate_password != null && var.ssl_certificate_password != "" ? { "ssl-certificate-password" = var.ssl_certificate_password } : {},
+    var.ssl_certificate_pfx_base64 != null && var.ssl_certificate_pfx_base64 != "" ? { "ssl-certificate-pfx-base64" = var.ssl_certificate_pfx_base64 } : {}
+  )
+  tags = var.tags
+
+  depends_on = [module.resource_group]
+}
+
 # 6. Virtual Machines Module
 module "vm" {
   source           = "../../modules/azurerm_linux_virtual_machine"
   virtual_machines = var.virtual_machines
   admin_username   = var.admin_username
-  admin_password   = var.admin_password
+  admin_password   = try(module.key_vault.secrets["vm-admin-password"].value, var.admin_password)
   tags             = var.tags
 
-  depends_on = [module.nic]
+  depends_on = [module.nic, module.key_vault]
 }
 
 # 7. Bastion Host Module
@@ -65,11 +89,11 @@ module "gateway" {
   source                     = "../../modules/azurerm_application_gateway"
   gateways                   = var.gateways
   virtual_machines           = var.virtual_machines
-  ssl_certificate_pfx_base64 = var.ssl_certificate_pfx_base64
-  ssl_certificate_password   = var.ssl_certificate_password
+  ssl_certificate_pfx_base64 = try(module.key_vault.secrets["ssl-certificate-pfx-base64"].value, var.ssl_certificate_pfx_base64)
+  ssl_certificate_password   = try(module.key_vault.secrets["ssl-certificate-password"].value, var.ssl_certificate_password)
   tags                       = var.tags
 
-  depends_on = [module.vm, module.subnet]
+  depends_on = [module.vm, module.subnet, module.key_vault]
 }
 
 # 10. AKS Clusters Module
