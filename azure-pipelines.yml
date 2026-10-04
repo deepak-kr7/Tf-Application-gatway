@@ -26,9 +26,19 @@ stages:
     steps:
     - checkout: self
 
+    # Install Terraform
+    - task: TerraformInstaller@1
+      displayName: "Install Terraform"
+      inputs:
+        terraformVersion: 'latest'
+
     - powershell: |
         $ErrorActionPreference = "Continue"
-        mkdir -p reports
+
+        New-Item -ItemType Directory -Force -Path reports | Out-Null
+
+        Write-Host "Terraform version:"
+        terraform version
 
         Write-Host "1. Terraform Init & Validate..."
         terraform init -backend=false -input=false
@@ -63,6 +73,7 @@ stages:
         infracost breakdown --path . --format json --out-file reports/infracost.json
 
         exit 0
+
       displayName: "Run Security Scans"
       workingDirectory: "$(workingDir)"
       continueOnError: true
@@ -72,6 +83,7 @@ stages:
       inputs:
         PathtoPublish: "$(workingDir)/reports"
         ArtifactName: "SecurityReports"
+
 
 #=========================================================
 # STAGE 2: CI - Terraform Build & Save Plan Artifact
@@ -87,6 +99,12 @@ stages:
     steps:
     - checkout: self
 
+    # Install Terraform
+    - task: TerraformInstaller@1
+      displayName: "Install Terraform"
+      inputs:
+        terraformVersion: 'latest'
+
     - task: TerraformTask@5
       displayName: "Terraform Init"
       inputs:
@@ -99,7 +117,6 @@ stages:
         backendAzureRmContainerName: '$(containerName)'
         backendAzureRmKey: '$(stateFile)'
 
-    # Generate Plan File (Build Step)
     - task: TerraformTask@5
       displayName: "Terraform Plan"
       inputs:
@@ -109,13 +126,13 @@ stages:
         environmentServiceNameAzureRM: '$(serviceConnection)'
         commandOptions: '-out=$(workingDir)/tfplan'
 
-    # Save Plan File as Pipeline Artifact
     - publish: $(workingDir)/tfplan
       artifact: tfplan
       displayName: "Save Terraform Plan Artifact"
 
+
 #=========================================================
-# STAGE 3: CD - Terraform Apply (Deployment)
+# STAGE 3: CD - Terraform Apply
 #=========================================================
 - stage: Apply
   displayName: "CD - Deploy Infrastructure"
@@ -125,18 +142,28 @@ stages:
   jobs:
   - deployment: Apply
     displayName: "Terraform Apply"
-    environment: 'dev-environment'  # Azure DevOps Environment (for Approvals)
+
+    environment: 'dev-environment'
+
     strategy:
       runOnce:
         deploy:
           steps:
+
           - checkout: self
 
-          # Download saved Plan Artifact from CI Stage
+          # Install Terraform
+          - task: TerraformInstaller@1
+            displayName: "Install Terraform"
+            inputs:
+              terraformVersion: 'latest'
+
+          # Download saved plan
           - download: current
             artifact: tfplan
-            displayName: "Download Saved Plan Artifact"
+            displayName: "Download Saved Terraform Plan"
 
+          # Terraform Init
           - task: TerraformTask@5
             displayName: "Terraform Init"
             inputs:
@@ -149,12 +176,13 @@ stages:
               backendAzureRmContainerName: '$(containerName)'
               backendAzureRmKey: '$(stateFile)'
 
-          # Copy plan file to working directory
+          # Copy plan
           - powershell: |
-              Copy-Item "$(Pipeline.Workspace)/tfplan/tfplan" -Destination "$(workingDir)/tfplan"
-            displayName: "Prepare Plan File for Apply"
+              Copy-Item `
+                "$(Pipeline.Workspace)/tfplan/tfplan" `
+                -Destination "$(workingDir)/tfplan" `
+                -Force
 
-          # Apply using exact saved plan
           - task: TerraformTask@5
             displayName: "Terraform Apply"
             inputs:
