@@ -1,11 +1,11 @@
 trigger: none
 
 pool:
-  name: 'NewAgent pool'
+  vmImage: 'ubuntu-latest'
 
 variables:
   workingDir: '$(System.DefaultWorkingDirectory)/environments/dev'
-  serviceConnection: 'demopipline'
+  serviceConnection: 'newagenticai'
   resourceGroup: 'demo_rg'
   storageAccount: 'demostg1344'
   containerName: 'democ'
